@@ -49,10 +49,11 @@ class RealState(db.Model):
 def load_user(user_id):
     return User.query.get(user_id)  
 
-# Rota raiz
+# Routes
+# Root route
 @application.route('/')
 def main_route():
-    return 'Cacador Imoveis API v0.0.1'
+    return jsonify({"application:": "cacadorimoveis-api","version":"0.0.1"})
 
 @application.route('/login', methods=["POST"])
 def login():

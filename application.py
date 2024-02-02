@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
 
+from messaging.sender import message_broker_send_message
+
 application = Flask(__name__)
 application.config['SECRET_KEY'] = 'minha_chave_123'
 application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cacadorimoveis.db'
@@ -21,7 +23,6 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=True)
-    cart = db.relationship('CartItem', backref='user', lazy=True)
 
 # Scrap(id, date_time_initial, date_time_end, real_state_id)
 class Scrap(db.Model):
@@ -71,7 +72,7 @@ def logout():
     logout_user()
     return jsonify({"message": "User logged out"}), 200 
 
-
+# Real State Routes
 # Real State list route
 @application.route('/api/real_state', methods=["GET"])
 def get_all_real_state():
@@ -107,6 +108,19 @@ def real_state_add():
         db.session.commit()
         return jsonify({"message": "Real State inserterd in Database"}), 200 
     return jsonify({"message": "Invalid Real State data"}), 400
+
+# Scrape routes
+# Route to request new scrap for the correspond real_state_id
+@application.route('/api/scrap/add/<int:real_state_id>', methods=["POST"])
+@login_required
+def scrap_add(real_state_id):
+    if real_state_id:
+        real_state = RealState.query.get(real_state_id)
+        # Publish a message to the scraper-queue
+        message_broker_send_message(f"Message test with the real_state: {real_state.name}")
+        return jsonify({"message": "New scrap successfuly requested"})
+    return jsonify({"message": "Fail to request new scrap"}), 500
+
 
 if __name__ == "__main__":
     application.run(debug=True)

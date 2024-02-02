@@ -1,5 +1,7 @@
 # API APPLICATION FOR CACADORIMOVEIS
 
+from datetime import datetime
+import uuid
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -24,12 +26,13 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(80), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=True)
 
-# Scrap(id, date_time_initial, date_time_end, real_state_id)
+# Scrap(id, date_time_initial, date_time_end, real_state_id, protocol)
 class Scrap(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date_time_initial = db.Column(db.DateTime, nullable=False)
-    date_time_end = db.Column(db.DateTime, nullable=False)
+    date_time_end = db.Column(db.DateTime, nullable=True)
     real_state_id = db.Column(db.Integer, db.ForeignKey('real_state.id'), nullable=False)
+    protocol = db.Column(db.String(36), nullable=False)
 
 # RealState(id, name, display_name, url_site, url_for_sale, url_to_rent, xpath_to_check_valid_page, card_xpath, properties_list_xpath, platform)
 class RealState(db.Model):
@@ -116,9 +119,19 @@ def real_state_add():
 def scrap_add(real_state_id):
     if real_state_id:
         real_state = RealState.query.get(real_state_id)
+        # Save new request protocol
+        new_protocol = str(uuid.uuid4())
+        scrap = Scrap(date_time_initial=datetime.now(), real_state_id=real_state_id, protocol=new_protocol)
+        db.session.add(scrap)
+        db.session.commit()
+
         # Publish a message to the scraper-queue
         message_broker_send_message(f"Message test with the real_state: {real_state.name}")
-        return jsonify({"message": "New scrap successfuly requested"})
+        return jsonify({
+            "message": "New scrap successfuly requested",
+            "protocol": scrap.protocol,
+            "date_time_initial": scrap.date_time_initial
+            })
     return jsonify({"message": "Fail to request new scrap"}), 500
 
 

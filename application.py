@@ -117,8 +117,9 @@ def real_state_add():
 @application.route('/api/scrap/add/<int:real_state_id>', methods=["POST"])
 @login_required
 def scrap_add(real_state_id):
-    if real_state_id:
-        real_state = RealState.query.get(real_state_id)
+    real_state = RealState.query.get(real_state_id)
+
+    if real_state:
         # Save new request protocol
         new_protocol = str(uuid.uuid4())
         scrap = Scrap(date_time_initial=datetime.now(), real_state_id=real_state_id, protocol=new_protocol)
